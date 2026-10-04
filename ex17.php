@@ -1,107 +1,118 @@
 <?php
 
- function quant_carac($texto){
-    $quantidade_carac = strlen($texto);
-
-    return $quantidade_carac;
- }
-
-
- function quant_palavras($texto){
-    $sep_palavras = explode(" ", $texto);
-
-   $quantidade_palavras = count($sep_palavras);
-
-   return $quantidade_palavras;
- }
-
- function quant_frases($texto){
-    preg_match_all('/[.!?]+/', $texto, $frases);
-
-    return count($frases[0]);
- }
-
- function maior_menor($texto){
-    $maior = "";
-    $menor = $texto[0];
-
-    foreach ($texto as $palavra) {
-
-        if (strlen($palavra) > strlen($maior)) {
-            $maior = $palavra;
-        }
-
-        if (strlen($palavra) < strlen($menor)) {
-            $menor = $palavra;
-        }
- }
-
- return [
-    "maior"=> $maior,
-    "menor"=> $menor
- ];
+function limparTexto($texto) {
+    $limpo = trim($texto);
+    while (strpos($limpo, "  ") !== false) {
+        $limpo = str_replace("  ", " ", $limpo);
+    }
+    return $limpo;
 }
 
-function quant_repetidas($texto){
-    $palavras = preg_split('/\s+/',strtolower(trim($texto)));
+function contarFrases($texto) {
+    $qtd = 0;
+    for ($i = 0; $i < strlen($texto); $i++) {
+        $c = $texto[$i];
+        if ($c == '.' || $c == '!' || $c == '?') {
+            $qtd++;
+        }
+    }
 
-    $quant_palavras = array_count_values($palavras);
+    if ($qtd == 0 && strlen(trim($texto)) > 0) {
+        return 1;
+    }
+    return $qtd;
+}
 
+function buscarTamanhosPalavras($palavras) {
+    $maior = $palavras[0];
+    $menor = $palavras[0];
+
+    for ($i = 0; $i < count($palavras); $i++) {
+        $p = $palavras[$i];
+        if (strlen($p) > strlen($maior)) {
+            $maior = $p;
+        }
+        if (strlen($p) < strlen($menor)) {
+            $menor = $p;
+        }
+    }
+
+    return ["maior" => $maior, "menor" => $menor];
+}
+
+function contarRepetidas($frequencia) {
     $repetidas = 0;
-
-    foreach ($quant_palavras as $quant_rep) {
-        if ($quant_rep > 1){
+    foreach ($frequencia as $palavra => $qtd) {
+        if ($qtd > 1) {
             $repetidas++;
         }
     }
-
     return $repetidas;
 }
 
-function quant_repetidas5($texto){
-    $palavras = preg_split('/\s+/',strtolower(trim($texto)));
+function obterTop5Palavras($frequencia) {
+    arsort($frequencia);
+    $top5 = [];
+    $contador = 0;
 
-    $quant_palavras = array_count_values($palavras);
-
-    asort($quant_palavras);
-
-    return array_slice($quant_palavras, 0, 5, true);
-}
-
-function espaco_duplo($texto){
-    $sem_duplos = preg_replace('/\s+/', ' ',trim($texto));
-
-    return $sem_duplos;
-}
-
-function formatado($texto){
-    $texto_form = ucwords(($texto));
-
-    return $texto_form;
-}
-
-
-function processarTexto($texto){
-
-    $resultado = maior_menor($texto);
-   echo "Quantidade de caracteres é de " . quant_carac($texto) . "<br>";
-   echo "Quantidade de palavras é de " . quant_palavras($texto) . "<br>";
-   echo "Quantidade de frases é de " . quant_frases($texto) . "<br>";
-   echo "A maior palavra é ". $resultado["maior"] . "<br>";
-   echo "A menor palavra é " . $resultado["menor"] . "<br>";
-
-   echo "As 5 palavras mais frequente são: <br>";
-    foreach (quant_repetidas5($texto) as $palavra => $quantidade) {
-        echo "$palavra : $quantidade <br>";
+    foreach ($frequencia as $palavra => $qtd) {
+        if ($contador < 5) {
+            $top5[$palavra] = $qtd;
+            $contador++;
+        } else {
+            break;
+        }
     }
-   ;
-
-   echo "<br> O texto sem espaços duplos : " . espaco_duplo($texto) . "<br>";
-   echo "O texto formatado : ". formatado($texto)."<br>";
+    return $top5;
 }
 
-$texto = "Ola me chamo arthur tenho 17 anos e estou estudando no colegio sesi de referencia e estou aprendendo a programar em php e estou gostando muito de aprender a programar em php";
+function formatarTextoMaiusculas($texto) {
+    return ucwords(strtolower($texto));
+}
 
-processarTexto($texto);
+function processarTexto($textoOriginal) {
+    $textoLimpo = limparTexto($textoOriginal);
+
+    $textoSemPontuacao = str_replace([".", ",", "!", "?", ";", ":"], "", strtolower($textoLimpo));
+    $palavras = explode(" ", $textoSemPontuacao);
+
+    $frequencia = array_count_values($palavras);
+
+    $tamanhos = buscarTamanhosPalavras($palavras);
+    $qtdFrases = contarFrases($textoOriginal);
+    $qtdRepetidas = contarRepetidas($frequencia);
+    $top5 = obterTop5Palavras($frequencia);
+    $textoFormatado = formatarTextoMaiusculas($textoLimpo);
+
+    return [
+        "caracteres" => strlen($textoOriginal),
+        "palavras" => count($palavras),
+        "frases" => $qtdFrases,
+        "mais_longa" => $tamanhos["maior"],
+        "mais_curta" => $tamanhos["menor"],
+        "qtd_repetidas" => $qtdRepetidas,
+        "top_5" => $top5,
+        "texto_limpo" => $textoLimpo,
+        "texto_formatado" => $textoFormatado
+    ];
+}
+
+$texto = "eu gosto curso curso da escola SESI SENAI e do curso de DS, minha turma é a DSM1/2024";
+$resultado = processarTexto($texto);
+
+echo "quantidade de caracteres: " . $resultado["caracteres"] . "<br>";
+echo "quantidade de palavras: " . $resultado["palavras"] . "<br>";
+echo "quantidade de frases: " . $resultado["frases"] . "<br>";
+echo "palavra mais longa: " . $resultado["mais_longa"] . "<br>";
+echo "palavra mais curta: " . $resultado["mais_curta"] . "<br>";
+echo "quantidade de palavras repetidas: " . $resultado["qtd_repetidas"] . "<br>";
+
+echo "texto sem espaços duplicados: " . $resultado["texto_limpo"] . "<br>";
+echo "texto formatado: " . $resultado["texto_formatado"] . "<br>";
+
+echo "<br>top 5 palavras mais frequentes:<br>";
+foreach ($resultado["top_5"] as $palavra => $qtd) {
+    echo "- $palavra: $qtd vezes<br>";
+}
 
 ?>
